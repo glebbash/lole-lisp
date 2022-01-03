@@ -1,5 +1,8 @@
 {
   "files.associations": {
     "*.lole": "clojure"
+  },
+  "files.watcherExclude": {
+    "**/target": true
   }
 }

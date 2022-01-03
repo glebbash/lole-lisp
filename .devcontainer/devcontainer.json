@@ -1,0 +1,8 @@
+{
+  "name": "sbt",
+  "dockerFile": "Dockerfile",
+  "extensions": [
+    "scalameta.metals",
+    "scala-lang.scala"
+  ]
+}

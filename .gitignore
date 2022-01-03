@@ -1,0 +1,44 @@
+# JARs aren't checked in, they are fetched by sbt
+#
+/lib/*.jar
+/test/files/codelib/*.jar
+/test/files/lib/*.jar
+/test/files/speclib/instrumented.jar
+/tools/*.jar
+
+# Developer specific properties
+/build.properties
+/buildcharacter.properties
+
+# might get generated when testing Jenkins scripts locally
+/jenkins.properties
+
+# target directory for build
+/build/
+
+# other
+/out/
+/bin/
+/sandbox/
+
+# Standard symbolic link to build/quick/bin
+/qbin
+
+# sbt's target directories
+/target/
+/project/**/target/
+/test/macro-annot/target/
+/test/files/target/
+/test/target/
+/build-sbt/
+local.sbt
+jitwatch.out
+
+# Used by the restarr/restarrFull commands as target directories
+/build-restarr/
+/target-restarr/
+
+# metals
+.metals
+.bloop
+project/**/metals.sbt
