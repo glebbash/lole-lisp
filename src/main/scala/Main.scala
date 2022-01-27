@@ -1,5 +1,6 @@
-@main def hello: Unit =
-  println("Hello world!")
-  println(msg)
+import scala.io.Source
 
-def msg = "I was compiled by Scala 3."
+@main def process(fileName: String): Unit =
+  val input = Source.fromFile(fileName).getLines.mkString("\n")
+
+  parse(input).map(exprToString).foreach(println)

@@ -1,8 +1,6 @@
 import org.junit.Test
 import org.junit.Assert.*
 
-import parser._
-
 class ParserTests:
   @Test def parsesEmptyList(): Unit =
     expectEqual(parse("()"), List(expr()))
@@ -25,13 +23,6 @@ class ParserTests:
       |""".stripMargin,
       "The quick brown fox jumps over the lazy dog."
     )
-    {
-      // TODO: uncomment when string quorte escaping is implemented
-      // expectParsedString(
-      //   '("\\"escaped quotes supported\\"")',
-      //   '"\\"escaped quotes supported\\""'
-      // )
-    }
 
   @Test def parsesListsWithMultipleAtoms() =
     expectEqual(
@@ -111,7 +102,6 @@ class ParserTests:
       )
     )
 
-  // TODO: add parse error tests
   @Test def throwsErrorOnInvalidInput() =
     expectNotToParse("")
     expectNotToParse("(")
@@ -134,9 +124,9 @@ def expectNotToParse(input: String) =
 
   assert(res)
 
-def expr(exprs: SExpr*) = SExpr.E(exprs.toList)
-def sym(name: String) = SExpr.A(Atom.Symbol(name))
-def num(value: Double) = SExpr.A(Atom.Number(value))
-def str(value: String) = SExpr.A(Atom.Str(value))
+def expr(exprs: SExpr*) = SExpr.Expr(exprs.toList)
+def sym(name: String) = SExpr.Atom(Value.Symbol(name))
+def num(value: Double) = SExpr.Atom(Value.Number(value))
+def str(value: String) = SExpr.Atom(Value.Str(value))
 
 def expectEqual[T](value: T, expected: T) = assertEquals(expected, value)
