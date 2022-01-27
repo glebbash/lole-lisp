@@ -2,11 +2,14 @@ import org.junit.Test
 import org.junit.Assert.*
 
 import parser._
+import cats.parse.Parser.Error
 import cats.parse.Caret
+import cats.data.NonEmptyList
+import cats.parse.Parser.Expectation.InRange
 
-class Parser:
+class ParserTests:
   @Test def parsesEmptyList(): Unit =
-    expectEqual(parse0("()"), List(expr()))
+    expectEqual(parse("()"), List(expr()))
 
   @Test def parsesSymbols() =
     expectParsedSymbol("(a)", "a")
@@ -36,7 +39,7 @@ class Parser:
 
   @Test def parsesListsWithMultipleAtoms() =
     expectEqual(
-      parse0("""
+      parse("""
         |(abc1 123 "string")
         |""".stripMargin),
       List(expr(sym("abc1"), num(123), str("string")))
@@ -44,7 +47,7 @@ class Parser:
 
   @Test def skipsWhitespaceAndComments() =
     expectEqual(
-      parse0("""
+      parse("""
         |(a             b               c) ;comment
         |; comment
         |(
@@ -61,7 +64,7 @@ class Parser:
 
   @Test def parsesComplexExpressions() =
     expectEqual(
-      parse0("(a (b (c () d e f (g h)))) (i) (j k (l m n))"),
+      parse("(a (b (c () d e f (g h)))) (i) (j k (l m n))"),
       List(
         expr(
           sym("a"),
@@ -84,7 +87,7 @@ class Parser:
 
   @Test def parsesHelloWorld() =
     expectEqual(
-      parse0("""
+      parse("""
         |;; Hello World example
         |(llvm/target-triple "x86_64-pc-linux-gnu") ; optional
         |(external-fn puts (&i8) i32)
@@ -112,98 +115,32 @@ class Parser:
       )
     )
 
-  @Test def parsesHelloWorldWithCorrectPositions() =
-    expectEqual(
-      parse("""
-        |;; Hello World example
-        |(llvm/target-triple "x86_64-pc-linux-gnu") ; optional
-        |(external-fn puts (&i8) i32)
-        |(fn main () i32
-        |  (puts "Hello World!")
-        |  (i32 0)
-        |)
-        |""".stripMargin),
-      List(
-        exprAt(
-          List(
-            symAt("llvm/target-triple", Caret(2, 1, 25), Caret(2, 19, 43)),
-            strAt("x86_64-pc-linux-gnu", Caret(2, 20, 44), Caret(2, 41, 65))
-          ),
-          Caret(2, 0, 24),
-          Caret(2, 42, 66)
-        ),
-        exprAt(
-          List(
-            symAt("external-fn", Caret(3, 1, 79), Caret(3, 12, 90)),
-            symAt("puts", Caret(3, 13, 91), Caret(3, 17, 95)),
-            exprAt(
-              List(symAt("&i8", Caret(3, 19, 97), Caret(3, 22, 100))),
-              Caret(3, 18, 96),
-              Caret(3, 23, 101)
-            ),
-            symAt("i32", Caret(3, 24, 102), Caret(3, 27, 105))
-          ),
-          Caret(3, 0, 78),
-          Caret(3, 28, 106)
-        ),
-        exprAt(
-          List(
-            symAt("fn", Caret(4, 1, 108), Caret(4, 3, 110)),
-            symAt("main", Caret(4, 4, 111), Caret(4, 8, 115)),
-            exprAt(List(), Caret(4, 9, 116), Caret(4, 11, 118)),
-            symAt("i32", Caret(4, 12, 119), Caret(4, 15, 122)),
-            exprAt(
-              List(
-                symAt("puts", Caret(5, 3, 126), Caret(5, 7, 130)),
-                strAt("Hello World!", Caret(5, 8, 131), Caret(5, 22, 145))
-              ),
-              Caret(5, 2, 125),
-              Caret(5, 23, 146)
-            ),
-            exprAt(
-              List(
-                symAt("i32", Caret(6, 3, 150), Caret(6, 6, 153)),
-                numAt(0, Caret(6, 7, 154), Caret(6, 8, 155))
-              ),
-              Caret(6, 2, 149),
-              Caret(6, 9, 156)
-            )
-          ),
-          Caret(4, 0, 107),
-          Caret(7, 1, 158)
-        )
-      )
-    )
-
-// TODO: add parse error tests
-// @Test def throwsErrorOnInvalidInput() =
-//   expectEqual(parseOption(""), Left("error"))
+  // TODO: add parse error tests
+  @Test def throwsErrorOnInvalidInput() =
+    expectNotToParse("")
+    expectNotToParse("(")
 
 // Helpers
 
 def expectParsedSymbol(input: String, name: String) =
-  expectEqual(parse0(input), List(expr(sym(name))))
+  expectEqual(parse(input), List(expr(sym(name))))
 
 def expectParsedNumber(input: String, number: Double) =
-  expectEqual(parse0(input), List(expr(num(number))))
+  expectEqual(parse(input), List(expr(num(number))))
 
 def expectParsedString(input: String, value: String) =
-  expectEqual(parse0(input), List(expr(str(value))))
+  expectEqual(parse(input), List(expr(str(value))))
+
+def expectNotToParse(input: String) =
+  val res = parseOption(input) match
+    case Right(_) => false
+    case Left(_)  => true
+
+  assert(res)
 
 def expr(exprs: SExpr*) = SExpr.E(exprs.toList)
 def sym(name: String) = SExpr.A(Atom.Symbol(name))
 def num(value: Double) = SExpr.A(Atom.Number(value))
 def str(value: String) = SExpr.A(Atom.Str(value))
-
-def exprAt(exprs: List[PositionedSExpr], start: Caret, end: Caret) =
-  PositionedSExpr.E(Positioned(exprs, start, end))
-def symAt(name: String, start: Caret, end: Caret) =
-  PositionedSExpr.A(Positioned(Atom.Symbol(name), start, end))
-def numAt(value: Double, start: Caret, end: Caret) =
-  PositionedSExpr.A(Positioned(Atom.Number(value), start, end))
-def strAt(value: String, start: Caret, end: Caret) =
-  PositionedSExpr.A(Positioned(Atom.Str(value), start, end))
-
-def parse0(input: String) = parse(input).map(withoutPositions)
 
 def expectEqual[T](value: T, expected: T) = assertEquals(expected, value)

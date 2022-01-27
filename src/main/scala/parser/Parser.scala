@@ -13,20 +13,10 @@ enum SExpr:
   case A(val atom: Atom)
   case E(val expr: List[SExpr])
 
-enum PositionedSExpr:
-  case A(val atom: Positioned[Atom])
-  case E(val expr: Positioned[List[PositionedSExpr]])
-
-final case class Positioned[T](
-    var value: T,
-    val start: Caret,
-    val end: Caret
-)
-
 def parse(input: String) =
   parseOption(input) match
-    case Right(res) => res._2
-    case Left(err)  => throw new Exception("Parsing failed")
+    case Right((_, result)) => result
+    case Left(err)          => throw new Exception("Parsing failed")
 
 def parseOption = script.parse
 
@@ -41,27 +31,16 @@ val symbol = charWhere(c => c != '(' && c != ')')
 val number = digit
   ~ (digit | char('_')).rep0
   ~ (char('.') ~ (digit | char('_')).rep).?
-val string = // TODO: add escape sequence support
-  char('"') *> charsWhile0(_ != '"') <* char('"')
-val atom =
-  positioned(
-    string.string.map(x => Atom.Str(x.substring(1, x.length - 1)))
-      | number.string.map(x => Atom.Number(parseNumber(x)))
-      | symbol.string.map(x => Atom.Symbol(x))
-  ).map(atom => PositionedSExpr.A(atom))
+val string = char('"') *> charsWhile0(_ != '"') <* char('"')
+val atom = (string.string.map(x => Atom.Str(x.substring(1, x.length - 1)))
+  | number.string.map(x => Atom.Number(parseNumber(x)))
+  | symbol.string.map(x => Atom.Symbol(x))).map(atom => SExpr.A(atom))
 
-val list: Parser[PositionedSExpr] = defer(
-  positioned(
-    char('(') *> whitespace *>
-      expr.repSep0(whitespace.void)
-      <* whitespace <* char(')')
-  )
-).map(PositionedSExpr.E(_))
-
-def positioned[T](parse: Parser[T]): Parser[Positioned[T]] =
-  product10(product01(caret, parse), caret).map { case ((start, value), end) =>
-    Positioned(value, start, end)
-  }
+val list: Parser[SExpr] = defer(
+  char('(') *> whitespace *>
+    expr.repSep0(whitespace.void)
+    <* whitespace <* char(')')
+).map(SExpr.E(_))
 
 val expr = atom | list
 
@@ -71,9 +50,3 @@ val script =
 // Helpers
 
 def parseNumber(str: String) = str.replaceAll("_", "").toDouble
-
-def withoutPositions(expr: PositionedSExpr): SExpr =
-  expr match
-    case PositionedSExpr.A(atom) => SExpr.A(atom.value)
-    case PositionedSExpr.E(expr) =>
-      SExpr.E(expr.value.map(withoutPositions))
