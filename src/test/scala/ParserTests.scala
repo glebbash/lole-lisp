@@ -2,10 +2,6 @@ import org.junit.Test
 import org.junit.Assert.*
 
 import parser._
-import cats.parse.Parser.Error
-import cats.parse.Caret
-import cats.data.NonEmptyList
-import cats.parse.Parser.Expectation.InRange
 
 class ParserTests:
   @Test def parsesEmptyList(): Unit =
